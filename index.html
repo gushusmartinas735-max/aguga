@@ -11,27 +11,33 @@
     h1{font-size:clamp(22px,5.4vw,48px);margin:0;text-align:center;letter-spacing:1px;text-shadow:0 6px 40px rgba(0,0,0,.6);position:relative}
     .card{backdrop-filter:blur(6px) saturate(1.2);padding:14px;border-radius:14px;display:flex;flex-direction:column;align-items:center;gap:10px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.06));box-shadow:0 10px 40px rgba(0,0,0,.6);position:relative}
     .controls{display:flex;gap:10px;align-items:center}
-    button{appearance:none;border:0;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,#ff66cc,#7a5cff);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(122,92,255,.18)}
-    #scene{width:920px;height:560px;max-width:94vw;max-height:66vh;border-radius:12px;overflow:hidden;background:transparent;display:block}
+    button{appearance:none;border:0;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,#ff66cc,#7a5cff);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(122,92,255,.18);animation:btn-jump .2s infinite}
+    @keyframes btn-jump{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+    #scene{width:920px;height:560px;max-width:94vw;max-height:66vh;border-radius:12px;overflow:hidden;background:transparent;display:block;filter:none}
     .topbar{position:absolute;top:18px;left:18px;font-size:13px;opacity:.9}
     footer{position:absolute;bottom:14px;left:14px;font-size:12px;opacity:.7}
+    #flash{position:fixed;inset:0;background:#fff;pointer-events:none;opacity:0}
+    .floating-art{position:fixed;font-size:48px;pointer-events:none;z-index:-1;user-select:none;mix-blend-mode:screen;text-shadow:0 0 20px currentColor;animation:float-bounce 0.4s ease-in-out infinite}
+    @keyframes float-bounce{0%,100%{transform:translateY(0) rotate(0deg) scale(1)}25%{transform:translateY(-30px) rotate(15deg) scale(1.2)}50%{transform:translateY(0) rotate(-10deg) scale(0.9)}75%{transform:translateY(-20px) rotate(5deg) scale(1.1)}}
+    @keyframes glitch-fast{0%{transform:translate(0)}20%{transform:translate(-2px,2px)}40%{transform:translate(2px,-2px)}60%{transform:translate(-2px,-2px)}80%{transform:translate(2px,2px)}100%{transform:translate(0)}}
 
     /* Glitch title */
-    .glitch{position:relative}
+    .glitch{position:relative;animation:title-crazy 0.3s infinite}
     .glitch::before, .glitch::after{content:attr(data-text);position:absolute;left:0;top:0;width:100%;overflow:hidden}
-    .glitch::before{color:#ff77cc;clip-path:polygon(0 0,100% 0,100% 33%,0 33%);transform:translate(2px,-2px)}
-    .glitch::after{color:#7a5cff;clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%);transform:translate(-2px,2px)}
-    @keyframes title-flicker{0%,100%{opacity:1}50%{opacity:.6}}
-    .glitch{animation:title-flicker 2.8s infinite}
+    .glitch::before{color:#ff77cc;clip-path:polygon(0 0,100% 0,100% 33%,0 33%);animation:glitch-fast 0.15s infinite}
+    .glitch::after{color:#7a5cff;clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%);animation:glitch-fast 0.1s infinite;animation-delay:0.05s}
+    @keyframes title-crazy{0%,100%{text-shadow:0 0 0 #ff00ff}25%{text-shadow:3px 3px 0 #00ffff, -3px -3px 0 #ffff00}50%{text-shadow:-2px 2px 0 #ff00ff, 2px -2px 0 #00ff00}75%{text-shadow:2px 2px 0 #ffff00, -2px -2px 0 #00ffff}}
 
     /* canvas glitch slices */
-    .slice{position:absolute;left:0;top:0;pointer-events:none}
+    .slice{position:absolute;left:0;top:0;pointer-events:none;mix-blend-mode:lighten}
 
     /* small UI hint */
     .hint{font-size:12px;opacity:.85}
   </style>
 </head>
 <body>
+  <div id="flash"></div>
+  <div id="floating-arts"></div>
   <div class="wrap">
     <div class="card">
       <h1 class="glitch" data-text="Самый обкуренный сайт">Самый обкуренный сайт</h1>
@@ -43,6 +49,7 @@
         <button id="grow">Родить</button>
         <button id="forest">Родить лес</button>
         <button id="spawnGnomes">Позвать гномиков</button>
+        <button id="chaos">ЭКШЕН</button>
       </div>
     </div>
     <div style="position:relative;width:100%;display:flex;justify-content:center">
@@ -56,6 +63,8 @@
   <script>
     const canvas = document.getElementById('scene');
     const slicesContainer = document.getElementById('glitch-slices');
+    const flashOverlay = document.getElementById('flash');
+    const floatingArtsContainer = document.getElementById('floating-arts');
     const ctx = canvas.getContext('2d');
     function updateSize(){ let Wc = canvas.clientWidth || 800; let Hc = canvas.clientHeight || 480; canvas.width = Wc; canvas.height = Hc; return {W:Wc,H:Hc}; }
     let {W,H} = updateSize();
@@ -74,6 +83,21 @@
       bctx.putImageData(img,0,0);
     }
     renderBackground();
+
+    // Прыгающие картинки
+    const arts = ['🌲','🍄','👁️','🔥','💫','⚡','🎨','🧬'];
+    function createFloatingArt(){
+      const art = arts[Math.floor(Math.random()*arts.length)];
+      const el = document.createElement('div');
+      el.textContent = art;
+      el.className = 'floating-art';
+      el.style.left = Math.random()*W + 'px';
+      el.style.top = Math.random()*H + 'px';
+      el.style.color = ['#ff66cc','#7a5cff','#00ffff','#ffff00','#ff00ff'][Math.floor(Math.random()*5)];
+      el.style.animationDuration = (0.3 + Math.random()*0.3) + 's';
+      floatingArtsContainer.appendChild(el);
+      setTimeout(()=>el.remove(), 800);
+    }
 
     // Trees array
     function drawSingleTree(x, baseY, progress, seed){
@@ -107,19 +131,22 @@
     function spawnGnomes(n=4){
       gnomes.length=0;
       for(let i=0;i<n;i++){
-        gnomes.push({x:Math.random()*W, y:H*0.78 + Math.random()*40 - 20, vx:(Math.random()-.5)*0.6, vy:0, r:8+Math.random()*6, t:Math.random()*6});
+        gnomes.push({x:Math.random()*W, y:H*0.78 + Math.random()*40 - 20, vx:(Math.random()-.5)*1.2, vy:(Math.random()-.5)*0.3, r:8+Math.random()*6, t:Math.random()*6, spin:0});
       }
     }
     function updateGnomes(dt){
       for(const g of gnomes){
         g.x += g.vx * dt * 60;
+        g.y += g.vy * dt * 60;
+        g.spin += dt * 8;
         if(g.x < 0) g.x = W; if(g.x > W) g.x = 0;
+        if(g.y < H*0.6) { g.vy = Math.abs(g.vy) + 0.3; } else { g.vy -= 0.2; }
         g.t += dt;
       }
     }
     function drawGnomes(){
       for(const g of gnomes){
-        ctx.save(); ctx.translate(g.x, g.y);
+        ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.spin*0.3);
         ctx.fillStyle = '#ffcc99'; ctx.beginPath(); ctx.ellipse(0,0,g.r,g.r*1.2,0,0,Math.PI*2); ctx.fill();
         ctx.fillStyle = '#ff66cc'; ctx.beginPath(); ctx.moveTo(0,-g.r*1.6); ctx.lineTo(-g.r, -g.r*0.4); ctx.lineTo(g.r, -g.r*0.4); ctx.closePath(); ctx.fill();
         ctx.fillStyle='#222'; ctx.beginPath(); ctx.ellipse(-g.r*0.35,-g.r*0.1,1.2,1.8,0,0,Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.ellipse(g.r*0.35,-g.r*0.1,1.2,1.8,0,0,Math.PI*2); ctx.fill();
@@ -163,22 +190,30 @@
       updateGnomes(dt);
       drawFrame(progress);
       glitchTimer -= dt;
-      if(glitchTimer <= 0){ glitchTimer = 0.9 + Math.random()*2.5; createGlitchSlices(); }
+      if(glitchTimer <= 0){ glitchTimer = 0.3 + Math.random()*0.5; createGlitchSlices(); createGlitchFlash(); if(Math.random()<0.4)createFloatingArt(); }
       if(t < 8){ anim = requestAnimationFrame(animate); } else { running=false; start=0; lastTS=0; }
+    }
+
+    function createGlitchFlash(){
+      const intensity = 0.1 + Math.random()*0.3;
+      flashOverlay.style.opacity = intensity;
+      setTimeout(()=>{ flashOverlay.style.opacity = 0; }, 50 + Math.random()*50);
     }
 
     function createGlitchSlices(){
       slicesContainer.innerHTML='';
-      const slices = 3 + Math.floor(Math.random()*5);
+      const slices = 5 + Math.floor(Math.random()*8);
       for(let i=0;i<slices;i++){
-        const s = document.createElement('canvas'); s.className='slice'; s.width=W; s.height=H; s.style.opacity = (0.04+Math.random()*0.08);
-        const sc = s.getContext('2d'); const sy = Math.random()*H; const sh = Math.min(H,4 + Math.random()*40);
-        sc.drawImage(canvas,0,sy,W,sh, Math.random()*20-10, sy, W, sh);
-        s.style.transform = `translateX(${(Math.random()-0.5)*40}px) skewX(${(Math.random()-0.5)*6}deg)`;
-        s.style.transition = 'all .7s ease-out';
+        const s = document.createElement('canvas'); s.className='slice'; s.width=W; s.height=H; s.style.opacity = (0.06+Math.random()*0.12);
+        const sc = s.getContext('2d'); const sy = Math.random()*H; const sh = Math.min(H,3 + Math.random()*50);
+        sc.drawImage(canvas,0,sy,W,sh, (Math.random()-0.5)*80, sy, W, sh);
+        const hueShift = Math.random();
+        if(hueShift < 0.3){ sc.globalCompositeOperation='lighten'; sc.fillStyle=`hsla(${Math.random()*360},100%,50%,0.3)`; sc.fillRect(0,0,W,H); }
+        s.style.transform = `translateX(${(Math.random()-0.5)*100}px) skewX(${(Math.random()-0.5)*12}deg)`;
+        s.style.transition = 'all .3s ease-out';
         slicesContainer.appendChild(s);
-        setTimeout(()=>{ s.style.opacity='0'; s.style.transform = `translateX(${(Math.random()-0.5)*300}px) skewX(0deg)`; }, 80 + Math.random()*200);
-        setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 1200 + Math.random()*1000);
+        setTimeout(()=>{ s.style.opacity='0'; s.style.transform = `translateX(${(Math.random()-0.5)*400}px) skewX(0deg)`; }, 30 + Math.random()*80);
+        setTimeout(()=>{ if(s.parentNode) s.parentNode.removeChild(s); }, 500 + Math.random()*600);
       }
     }
 
@@ -186,6 +221,7 @@
     document.getElementById('grow').addEventListener('click',()=>{ if(running){ cancelAnimationFrame(anim); running=false; start=0; } running=true; anim=requestAnimationFrame((ts)=>{ start=ts; lastTS=ts; animate(ts)}); });
     document.getElementById('forest').addEventListener('click',()=>{ treesCount = Math.min(12, Math.max(1, Math.floor(Math.random()*9)+3)); document.getElementById('count').value = treesCount; if(!running){ document.getElementById('grow').click(); } });
     document.getElementById('spawnGnomes').addEventListener('click',()=>{ spawnGnomes(3 + Math.floor(Math.random()*6)); if(!running) document.getElementById('grow').click(); });
+    document.getElementById('chaos').addEventListener('click',()=>{ for(let i=0;i<10;i++){ setTimeout(()=>{ createFloatingArt(); createGlitchFlash(); createGlitchSlices(); }, i*30); } spawnGnomes(8); if(!running) document.getElementById('grow').click(); });
 
     let isDown=false, lastX=0, lastY=0, tiltX=0, tiltY=0;
     canvas.addEventListener('pointerdown', (e)=>{isDown=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId)});
