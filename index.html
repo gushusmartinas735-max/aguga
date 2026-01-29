@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Самый обкуренный сайт — как родить дерево</title>
+  <style>
+    :root{--bg1:#0b0f2b;--bg2:#2b0030}
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,Arial;background:linear-gradient(120deg,var(--bg1),var(--bg2));overflow:hidden;color:#fff}
+    .wrap{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:40px}
+    h1{font-size:clamp(24px,6vw,56px);margin:0;text-align:center;letter-spacing:1px;text-shadow:0 6px 40px rgba(0,0,0,.6)}
+    p{margin:0 0 8px 0;opacity:.9}
+    .card{backdrop-filter:blur(6px) saturate(1.2);padding:18px;border-radius:16px;display:flex;flex-direction:column;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.06));box-shadow:0 10px 40px rgba(0,0,0,.6)}
+    button{appearance:none;border:0;padding:12px 18px;border-radius:10px;background:linear-gradient(90deg,#ff66cc,#7a5cff);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(122,92,255,.18);transform:translateZ(0)}
+    #scene{width:820px;height:520px;max-width:92vw;max-height:62vh;border-radius:12px;overflow:hidden;background:transparent;display:block}
+    .psy:before{content:"";position:absolute;inset:-20%;background:conic-gradient(from 120deg at 50% 50%, #ff66cc55, #7a5cff55, #00ffd577, #00fffaa8, #ff66cc55);filter:blur(60px) saturate(1.6);mix-blend-mode:screen;animation:spin 18s linear infinite;opacity:.18}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .topbar{position:absolute;top:18px;left:18px;font-size:13px;opacity:.9}
+    .hint{font-size:12px;opacity:.85}
+    footer{position:absolute;bottom:14px;left:14px;font-size:12px;opacity:.7}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card psy">
+      <h1>Самый обкуренный сайт</h1>
+      <p class="hint">Нажми кнопку — роди дерево в психоделическом тумане</p>
+      <button id="grow">Родить дерево</button>
+    </div>
+    <canvas id="scene"></canvas>
+  </div>
+  <div class="topbar">click & drag — rotate view · space — reset</div>
+  <footer>Нажмите «Родить дерево», чтобы начать рост</footer>
+
+  <script>
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    let W = canvas.width = canvas.clientWidth;
+    let H = canvas.height = canvas.clientHeight;
+
+    window.addEventListener('resize',()=>{W=canvas.width=canvas.clientWidth;H=canvas.height=canvas.clientHeight;renderBackground()});
+
+    // Плавный фон с шумом
+    const bg = document.createElement('canvas');
+    const bctx = bg.getContext('2d');
+    function renderBackground(){
+      bg.width = W; bg.height = H;
+      const img = bctx.createImageData(W,H);
+      for(let i=0;i<img.data.length;i+=4){
+        const v = Math.floor(80 + 55*Math.sin(i*0.00012) + 40*(Math.random()-0.5));
+        img.data[i]=v+20; img.data[i+1]=v; img.data[i+2]=v+30; img.data[i+3]=255;
+      }
+      bctx.putImageData(img,0,0);
+    }
+    renderBackground();
+
+    // Фрактальное дерево — анимация роста с параметрами
+    function drawTree(progress){
+      ctx.clearRect(0,0,W,H);
+      // фон
+      ctx.globalCompositeOperation='source-over';
+      ctx.drawImage(bg,0,0);
+      // цветной туман
+      const g = ctx.createLinearGradient(0,0, W, H);
+      g.addColorStop(0,'rgba(120,20,220,0.06)');
+      g.addColorStop(0.5,'rgba(10,200,180,0.05)');
+      g.addColorStop(1,'rgba(255,120,200,0.04)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+      ctx.save();
+      ctx.translate(W/2, H*0.92);
+      const maxDepth = 10;
+      // рекурсивный рендер с прогрессом: углы и длины зависят от progress
+      function branch(len, angle, depth){
+        ctx.save();
+        ctx.rotate(angle);
+        // прогресс для уровня
+        const localProgress = Math.min(1, Math.max(0, (progress - depth*0.06)/0.7));
+        const drawLen = len * localProgress;
+        ctx.lineWidth = Math.max(1, (maxDepth-depth)+1);
+        // цвет ветки
+        const hue = 30 + depth*12 + Math.sin(progress*6+depth)*30;
+        ctx.strokeStyle = `hsl(${hue} 85% ${30 + depth*4}%)`;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-drawLen); ctx.stroke();
+        ctx.translate(0,-drawLen);
+        if(depth < maxDepth && localProgress > 0.01){
+          const s = 0.72 + 0.06*Math.sin(depth+progress*3);
+          branch(len*s, 0.18 + 0.02*Math.sin(depth*2+progress*1.5), depth+1);
+          branch(len*s, -0.22 + 0.02*Math.cos(depth*1.4+progress*1.1), depth+1);
+          if(depth<3 && Math.random() < 0.06) {
+            // маленькие боковые ответвления
+            branch(len*0.5, 0.45 + (depth*0.03), depth+2);
+          }
+        } else if(depth >= maxDepth && localProgress > 0.9){
+          // листья
+          ctx.fillStyle = `hsl(${(hue+80)%360} 90% 55%)`;
+          ctx.beginPath(); ctx.ellipse(0,0,6+Math.random()*6,10+Math.random()*6,Math.random()*2,0,Math.PI*2); ctx.fill();
+        }
+        ctx.restore();
+      }
+      branch(H*0.12, 0, 0);
+      ctx.restore();
+
+      // психоделические светящиеся орбиты
+      ctx.globalCompositeOperation='lighter';
+      for(let i=0;i<6;i++){
+        ctx.beginPath();
+        const r = 40 + i*60 + Math.sin(progress*1.5+i)*18;
+        const a = progress*0.8 + i*0.9;
+        ctx.fillStyle = `hsla(${(i*60+progress*80)%360},80%,60%,${0.02 + 0.02*Math.sin(progress*3+i)})`;
+        ctx.ellipse(W/2 + Math.cos(a)*r, H*0.6 + Math.sin(a)*r*0.4, 120, 60, a, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation='source-over';
+    }
+
+    let anim=0; let start=0; let running=false;
+    function animate(ts){
+      if(!start) start=ts;
+      const t = (ts-start)/1000;
+      // progress 0..1 with easing
+      const progress = Math.min(1, Math.pow(Math.sin(Math.min(1,t)*Math.PI/2),0.9));
+      drawTree(progress);
+      if(t < 6){
+        anim = requestAnimationFrame(animate);
+      } else {
+        running=false; start=0;
+      }
+    }
+
+    document.getElementById('grow').addEventListener('click',()=>{
+      if(running){ cancelAnimationFrame(anim); running=false; start=0; }
+      running=true; anim=requestAnimationFrame((ts)=>{start=ts; animate(ts)});
+    });
+
+    // первоначальный рендер
+    drawTree(0);
+
+    // мелкие интерактивные эффекты (drag for fun)
+    let isDown=false, lastX=0, lastY=0, tiltX=0, tiltY=0;
+    canvas.addEventListener('pointerdown', (e)=>{isDown=true; lastX=e.clientX; lastY=e.clientY; canvas.setPointerCapture(e.pointerId)});
+    canvas.addEventListener('pointermove',(e)=>{if(!isDown) return; const dx=e.clientX-lastX, dy=e.clientY-lastY; tiltX+=dy*0.002; tiltY+=dx*0.002; canvas.style.transform = `perspective(800px) rotateX(${tiltX}rad) rotateY(${tiltY}rad)`; lastX=e.clientX; lastY=e.clientY});
+    window.addEventListener('pointerup',()=>{isDown=false});
+    window.addEventListener('keydown',(e)=>{if(e.code==='Space'){tiltX=tiltY=0; canvas.style.transform='none'}})
+  </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+</head>
+<body>
+    <h1>Мухтарио</h1>
+    <img src="smario.jpg">
+</body>
+</html>
